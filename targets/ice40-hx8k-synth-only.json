@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "target": "ice40-hx8k-synth-only",
+  "fpgaFamily": "ice40",
+  "device": "hx8k",
+  "package": null,
+  "board": null,
+  "pinConstraints": null,
+  "maxFrequencyMHz": null,
+  "status": "synthesis-only",
+  "measuredHardware": false
+}
