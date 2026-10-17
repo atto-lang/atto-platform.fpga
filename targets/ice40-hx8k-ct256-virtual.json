@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "target": "virtual-ice40-hx8k-ct256",
+  "family": "ice40",
+  "device": "hx8k",
+  "package": "ct256",
+  "board": null,
+  "ioConstraint": null,
+  "frequencyMHz": 12,
+  "allowUnconstrainedIo": true,
+  "status": "experimental-place-route-no-board",
+  "measuredHardware": false
+}
