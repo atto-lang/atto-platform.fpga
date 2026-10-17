@@ -1,0 +1,23 @@
+name: FPGA platform generic RTL smoke
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generic-rtl-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install required synthesis/simulator tools
+        run: sudo apt-get update && sudo apt-get install -y iverilog yosys
+      - name: Verify fixture with simulator and Yosys
+        run: bash scripts/smoke.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fpga-generic-smoke-only
+          path: build/
