@@ -6,5 +6,7 @@
   "compilerFixturePath": "tests/fixtures/add8.generated.sv",
   "rtlSha256": "7888f715405fb1207ee4988d9b9cf9cd03ecc9eeca58b85782654d46104e01cd",
   "provenance": "byte-exact copy of compiler-generated golden fixture; independently reverify upstream PR",
-  "hardwareVerified": false
+  "hardwareVerified": false,
+  "sourceCommit": "2be4899ec3ad2e8dd38d6514d06e38d3d81a6b13",
+  "rtlGitBlobSha": "93f75db8bf1725a7fe0f1150f1c949f8919863ce"
 }
