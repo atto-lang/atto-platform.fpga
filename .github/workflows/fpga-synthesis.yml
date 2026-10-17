@@ -1,0 +1,26 @@
+name: FPGA synth-only admission
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  wrapper-and-ice40:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check wrapper safety
+        run: bash tests/wrapper-smoke.sh
+      - name: Install Yosys
+        run: sudo apt-get update && sudo apt-get install -y yosys
+      - name: Synthesize independent reference fixture
+        run: |
+          mkdir -p outputs
+          bash scripts/synth-ice40.sh examples/add8.sv ores_add8 outputs/add8.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ice40-synthesis-only
+          path: outputs/add8.json
+          retention-days: 7
