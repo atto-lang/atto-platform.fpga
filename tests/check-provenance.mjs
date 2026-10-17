@@ -1,0 +1,11 @@
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import assert from 'node:assert/strict';
+const p=JSON.parse(readFileSync('generated/provenance.json','utf8'));
+const digest=s=>createHash('sha256').update(readFileSync(s)).digest('hex');
+assert.equal(p.schemaVersion,1);
+assert.equal(digest('generated/add8.ores'),p.sourceSha256);
+assert.equal(digest('generated/add8.generated.sv'),p.rtlSha256);
+assert.equal(p.hardwareVerified,false);
+assert.equal(p.rtlSha256,'7888f715405fb1207ee4988d9b9cf9cd03ecc9eeca58b85782654d46104e01cd');
+console.log('FPGA_PINNED_RTL_PROVENANCE_PASS');
