@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 const p=JSON.parse(readFileSync('generated/provenance.json','utf8'));
 const digest=s=>createHash('sha256').update(readFileSync(s)).digest('hex');
 assert.equal(p.schemaVersion,1);
+assert.equal(p.sourceCommit,'2be4899ec3ad2e8dd38d6514d06e38d3d81a6b13');
+assert.equal(p.rtlGitBlobSha,'93f75db8bf1725a7fe0f1150f1c949f8919863ce');
 assert.equal(digest('generated/add8.ores'),p.sourceSha256);
 assert.equal(digest('generated/add8.generated.sv'),p.rtlSha256);
 assert.equal(p.hardwareVerified,false);
