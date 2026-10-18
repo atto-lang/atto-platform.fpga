@@ -67,7 +67,7 @@ class ReportInputTests(unittest.TestCase):
         self.write(b" " * 65537)
         with self.assertRaisesRegex(Rejected, "exceeds 64 KiB"):
             read_report(self.path)
-        self.write(b"\\xff")
+        self.write(bytes([0xff]))
         with self.assertRaises(UnicodeError):
             read_report(self.path)
 
