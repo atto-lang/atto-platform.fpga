@@ -40,5 +40,8 @@ class EvidenceTest(unittest.TestCase):
   self.reject(rtl_sha256="main")
 
 
+ def test_oversized_integer_rejects_cleanly(self):
+  self.reject(clock_period_ns=10**1000)
+
 if __name__=="__main__":
  unittest.main()

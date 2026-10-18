@@ -30,7 +30,7 @@ def sha_or_empty(value):
 
 
 def finite_positive(value):
-    return type(value) in (float, int) and math.isfinite(value) and value > 0
+    return type(value) in (float, int) and 0 < value <= sys.float_info.max and math.isfinite(value)
 
 
 def validate(record):
