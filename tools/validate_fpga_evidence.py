@@ -39,7 +39,7 @@ def validate(record):
     check(type(record["schema_version"]) is int and record["schema_version"] == 1,
           "unknown schema")
     stage = record["stage"]
-    check(stage in {"SYNTH_ONLY", "PLACED_ROUTED", "BOARD_VERIFIED"}, "unknown stage")
+    check(type(stage) is str and stage in {"SYNTH_ONLY", "PLACED_ROUTED", "BOARD_VERIFIED"}, "unknown stage")
     check(isinstance(record["device"], str) and record["device"].strip(),
           "target device required")
     check(type(record["rtl_sha256"]) is str and HEX.fullmatch(record["rtl_sha256"]),
