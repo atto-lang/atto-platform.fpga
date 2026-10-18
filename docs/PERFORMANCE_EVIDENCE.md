@@ -9,6 +9,14 @@ python3 tools/validate_fpga_evidence.py examples/synth-only.example.json
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+The JSON CLI now admits only a bounded (64 KiB) regular file: it opens the
+final path component without following symlinks, rejects FIFOs and device
+files, refuses duplicate JSON keys at any depth, nonstandard NaN/Infinity,
+invalid UTF-8 and excessively nested JSON. The input read uses one file
+descriptor to avoid a separate size-check/read path race. Paths through
+symlinked parent directories are **not** sandboxed; use an authorized
+artifact directory. A successful result is still **shape-only validation**.
+
 This **only validates the shape of supplied evidence**: RTL hash, target device,
 toolchain label, clock constraint, seed, LUT/FF/BRAM/DSP utilization, and stage
 specific log hashes. `SYNTH_ONLY` must not report placed/routed Fmax or board
