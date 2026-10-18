@@ -4,6 +4,8 @@
 Valid shape is not independently verified proof of any reported tool run.
 """
 import json
+import os
+import stat
 import math
 import re
 import sys
@@ -71,18 +73,65 @@ def validate(record):
     return {"admitted_shape": True, "stage": stage, "note": "claims still require independent artifact verification"}
 
 
+
+MAX_REPORT_BYTES = 65536
+
+
+def _unique_json_members(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise Rejected(f"duplicate JSON member: {key}")
+        result[key] = value
+    return result
+
+
+def _reject_non_json_constant(value):
+    raise Rejected(f"nonstandard JSON constant: {value}")
+
+
+def read_report(path):
+    """Read only a bounded regular file through one no-follow descriptor.
+
+    Reject FIFO/device reads, final-component symlinks, ambiguous duplicate
+    JSON members and nonstandard NaN/Infinity. This is shape admission, not
+    provenance authentication or a secure filesystem sandbox.
+    """
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        raise Rejected("safe regular-file admission unsupported on this host")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        metadata = os.fstat(fd)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise Rejected("report must be a regular file")
+        if not 0 <= metadata.st_size <= MAX_REPORT_BYTES:
+            raise Rejected("report exceeds 64 KiB")
+        chunks = []
+        remaining = MAX_REPORT_BYTES + 1
+        while remaining:
+            block = os.read(fd, min(16384, remaining))
+            if not block:
+                break
+            chunks.append(block)
+            remaining -= len(block)
+        if remaining == 0:
+            raise Rejected("report exceeds 64 KiB")
+    finally:
+        os.close(fd)
+    return json.loads(b"".join(chunks).decode("utf-8"),
+                      object_pairs_hook=_unique_json_members,
+                      parse_constant=_reject_non_json_constant)
+
+
 def main(argv):
     if len(argv) != 2:
         print("usage: validate_fpga_evidence.py evidence.json", file=sys.stderr)
         return 64
     try:
         path = Path(argv[1])
-        if path.stat().st_size > 65536:
-            raise Rejected("too large")
-        data = json.loads(path.read_text(encoding="utf8"))
-        print(json.dumps(validate(data), sort_keys=True))
+        print(json.dumps(validate(read_report(path)), sort_keys=True))
         return 0
-    except (OSError, ValueError, UnicodeError) as exc:
+    except (OSError, ValueError, UnicodeError, RecursionError) as exc:
         print(f"REJECTED: {exc}", file=sys.stderr)
         return 65
 
