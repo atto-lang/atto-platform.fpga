@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "stage": "SYNTH_ONLY",
+  "device": "example-device-not-tested",
+  "rtl_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "toolchain": "example-only: replace with exact Yosys and nextpnr versions",
+  "clock_period_ns": 10,
+  "seed": 0,
+  "resources": {
+    "lut": 0,
+    "ff": 0,
+    "bram": 0,
+    "dsp": 0
+  },
+  "fmax_hz": null,
+  "synth_log_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "pnr_log_sha256": "",
+  "board_log_sha256": ""
+}
