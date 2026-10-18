@@ -72,7 +72,7 @@ class ReportInputTests(unittest.TestCase):
             read_report(self.path)
 
     def test_deep_json_fails_with_rejection_exit_not_traceback(self):
-        self.write("[" * 2000 + "0" + "]" * 2000)
+        self.write("[" * 12000 + "0" + "]" * 12000)
         with contextlib.redirect_stderr(io.StringIO()) as error:
             self.assertEqual(main(["validator", str(self.path)]), 65)
         self.assertIn("REJECTED:", error.getvalue())
