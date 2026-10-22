@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+f=$(mktemp); trap 'rm -f "$f"' EXIT
+if bash scripts/synth-ice40.sh 'examples/add8.sv;evil' ores_add8 out.json >"$f" 2>&1; then echo 'injection accepted' >&2; exit 1; fi
+grep -q 'Unsafe path' "$f"
+if bash scripts/synth-ice40.sh examples/add8.sv 'top;evil' out.json >"$f" 2>&1; then echo 'top injection accepted' >&2; exit 1; fi
+grep -q 'Unsafe module' "$f"
+if bash scripts/synth-ice40.sh missing.sv ores_add8 out.json >"$f" 2>&1; then echo 'missing input accepted' >&2; exit 1; fi
+grep -q 'Missing RTL' "$f"
+echo 'FPGA_WRAPPER_GUARD_PASS'

@@ -1,0 +1,43 @@
+name: FPGA Prototype — pinned Oreslang RTL synthesis and virtual place-route
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  virtual-hx8k:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check wrapper safety and exact generated artifact hashes
+        run: |
+          bash tests/wrapper-smoke.sh
+          node tests/check-provenance.mjs
+      - name: Install open FPGA toolchain
+        run: sudo apt-get update && sudo apt-get install -y yosys iverilog nextpnr-ice40 fpga-icestorm
+      - name: Independently simulate compiler-generated artifact exhaustively
+        run: |
+          set -o pipefail
+          iverilog -g2012 -s tb -o /tmp/add8.tb generated/add8.generated.sv tests/generated-tb.sv
+          vvp /tmp/add8.tb | tee /tmp/fpga-rtl-sim.log
+          grep -Fx FPGA_RTL_65536_PASS /tmp/fpga-rtl-sim.log
+      - name: iCE40 synthesis of pinned Oreslang RTL
+        run: |
+          mkdir -p outputs
+          bash scripts/synth-ice40.sh generated/add8.generated.sv ores_add8 outputs/add8.json
+      - name: Virtual HX8K CT256 place and route (no board constraints)
+        run: |
+          nextpnr-ice40 --hx8k --package ct256 --json outputs/add8.json --asc outputs/add8.asc --pcf-allow-unconstrained --freq 12
+          icepack outputs/add8.asc outputs/add8.bin
+          test -s outputs/add8.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: virtual-hx8k-unconstrained-not-board-ready
+          path: |
+            generated/provenance.json
+            outputs/add8.json
+            outputs/add8.asc
+            outputs/add8.bin
+          retention-days: 14
