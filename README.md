@@ -8,7 +8,7 @@ This platform consumes **the byte-exact golden RTL fixture** from [oreslang-sour
 3. Yosys maps the same artifact to iCE40 primitive cells.
 4. nextpnr places/routes a virtual iCE40 HX8K CT256 design with unconstrained IO; `icepack` emits a **virtual/unprogrammed** bitstream. Successful tools do **not** establish board-safe pin mappings, electrical integrity, timing signoff, or real board execution.
 
-The upstream compiler's GitHub CI separately proves the pinned RTL was generated from Oreslang input. Both CI results should be checked before asserting end-to-end evidence; this repository itself does not run the compiler.
+End-to-end provenance additionally requires independently executed upstream compiler evidence matching these digests. This repository does not run the compiler; pinned artifact hashes alone do not establish that the current compiler emits this RTL.
 
 ## Commands
 ```sh
@@ -21,3 +21,25 @@ icepack outputs/add8.asc outputs/add8.bin
 ```
 
 **Next hardware finish line:** pick an actual board/package, commit its manufacturer-verified PCF constraints and a clock/frequency requirement, run timing; flash through a supported programmer and capture pin-level measurements/serial tests. Without those, status is only virtual implementation.
+
+## Existing generic smoke gate
+
+
+This repository consumes RTL under the proposed
+[hardware contract](https://github.com/ores-truffle-oreslang/oreslang-common-source/pull/65).
+It **does not implement** the Oreslang compiler.
+
+Implemented: self-contained representative \`add8\` RTL fixture, exhaustive
+65,536-vector Icarus simulation, generic Yosys synthesis and CI evidence.
+\`bash scripts/smoke.sh\` requires actual tools (no fake success).
+The fixture does not automatically attest the exact HDL compiler head; the
+compiler's own gate must execute separately and match the fixture by digest.
+
+No board, pin file, clock constraint, nextpnr route, timing closure, bitstream,
+or device measurements are included. \`scripts/board_gate.sh\` intentionally
+fails without a reviewed board-specific recipe. A generic synthesis PASS
+must never be described as an FPGA implementation.
+
+Next: choose a named supported FPGA/part/package, legal constraints and
+timing budget; implement nextpnr/P&R for that family; attest bitstream hash
+and independently exercise real board I/O, with golden-vector comparison.
