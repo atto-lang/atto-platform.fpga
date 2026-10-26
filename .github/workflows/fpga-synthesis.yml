@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   virtual-hx8k:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -43,7 +43,7 @@ jobs:
           nextpnr-ice40 --hx8k --package ct256 --json outputs/add8.json --asc outputs/add8.asc --pcf-allow-unconstrained --freq 12
           icepack outputs/add8.asc outputs/add8.bin
           test -s outputs/add8.bin
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: virtual-hx8k-unconstrained-not-board-ready
           path: |
