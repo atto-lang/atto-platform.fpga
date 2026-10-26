@@ -4,11 +4,27 @@
 set -euo pipefail
 gold="${1:?golden RTL file required}"
 gate="${2:?synthesized netlist file required}"
-for file in "$gold" "$gate"; do
-  [[ "$file" =~ ^[a-zA-Z0-9._/-]+$ ]] || { echo "unsafe RTL path" >&2; exit 2; }
-  [[ "$file" != /* && "$file" != *../* && "$file" != *'/..'* ]] || { echo "path traversal" >&2; exit 2; }
-  test -s "$file" || { echo "missing RTL input: $file" >&2; exit 2; }
-done
+repo_root="$(pwd -P)"
+command -v realpath >/dev/null || { echo "REQUIRED_TOOL_MISSING: realpath" >&2; exit 2; }
+validate_rtl_path() {
+  local file="$1" part cursor="" resolved
+  [[ "$file" =~ ^[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)*$ ]] ||
+    { echo "unsafe RTL path" >&2; exit 2; }
+  IFS='/' read -r -a parts <<<"$file"
+  for part in "${parts[@]}"; do
+    [[ "$part" != "." && "$part" != ".." ]] ||
+      { echo "path traversal" >&2; exit 2; }
+    cursor="${cursor:+$cursor/}$part"
+    [[ ! -L "$cursor" ]] || { echo "symlink RTL path rejected" >&2; exit 2; }
+  done
+  test -f "$file" && test -s "$file" ||
+    { echo "missing RTL input: $file" >&2; exit 2; }
+  resolved="$(realpath -- "$file")"
+  [[ "$resolved" == "$repo_root/"* ]] ||
+    { echo "RTL path escaped repository root" >&2; exit 2; }
+}
+validate_rtl_path "$gold"
+validate_rtl_path "$gate"
 command -v yosys >/dev/null || { echo "REQUIRED_TOOL_MISSING: yosys" >&2; exit 2; }
 mkdir -p build
 temp="$(mktemp -d)"
