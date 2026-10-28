@@ -16,6 +16,7 @@ FIELDS = {"schema_version", "stage", "device", "rtl_sha256", "toolchain",
           "clock_period_ns", "seed", "resources", "fmax_hz",
           "synth_log_sha256", "pnr_log_sha256", "board_log_sha256"}
 RESOURCE_KEYS = {"lut", "ff", "bram", "dsp"}
+MAX_RESOURCE_COUNT = (1 << 32) - 1
 
 
 class Rejected(ValueError):
@@ -42,20 +43,23 @@ def validate(record):
           "unknown schema")
     stage = record["stage"]
     check(type(stage) is str and stage in {"SYNTH_ONLY", "PLACED_ROUTED", "BOARD_VERIFIED"}, "unknown stage")
-    check(isinstance(record["device"], str) and record["device"].strip(),
-          "target device required")
+    check(type(record["device"]) is str and
+          0 < len(record["device"]) <= 256 and record["device"].strip() and
+          record["device"].isprintable(),
+          "bounded printable target device required")
     check(type(record["rtl_sha256"]) is str and HEX.fullmatch(record["rtl_sha256"]),
           "hash exact RTL input")
     toolchain = record["toolchain"]
-    check(isinstance(toolchain, str) and 0 < len(toolchain) <= 256,
-          "pinned synthesis and placement toolchain required")
+    check(type(toolchain) is str and 0 < len(toolchain) <= 256 and
+          toolchain.strip() and toolchain.isprintable(),
+          "bounded printable synthesis and placement toolchain required")
     check(finite_positive(record["clock_period_ns"]), "positive clock constraint required")
     check(type(record["seed"]) is int and 0 <= record["seed"] <= 2**32-1,
           "explicit bounded P&R seed required")
     resources = record["resources"]
     check(isinstance(resources, dict) and set(resources) == RESOURCE_KEYS and
-          all(type(v) is int and v >= 0 for v in resources.values()),
-          "explicit nonnegative FPGA utilization required")
+          all(type(v) is int and 0 <= v <= MAX_RESOURCE_COUNT for v in resources.values()),
+          "explicit bounded nonnegative FPGA utilization required")
     for key in ("synth_log_sha256", "pnr_log_sha256", "board_log_sha256"):
         check(sha_or_empty(record[key]), f"invalid {key}")
     check(bool(record["synth_log_sha256"]), "synthesis evidence mandatory")
