@@ -40,6 +40,26 @@ class EvidenceTest(unittest.TestCase):
   self.reject(rtl_sha256="main")
 
 
+
+ def test_resource_counters_are_bounded_for_downstream_consumers(self):
+  maximum=(1<<32)-1
+  good=copy.deepcopy(BASE)
+  good["resources"]["lut"]=maximum
+  self.assertTrue(validate(good)["admitted_shape"])
+  for field in ("lut","ff","bram","dsp"):
+   invalid=copy.deepcopy(BASE["resources"])
+   invalid[field]=maximum+1
+   self.reject(resources=invalid)
+   invalid[field]=10**1000
+   self.reject(resources=invalid)
+
+ def test_device_and_toolchain_provenance_labels_are_bounded(self):
+  for field in ("device","toolchain"):
+   self.reject(**{field:"X"*257})
+   self.reject(**{field:"trusted\nmalicious"})
+   self.reject(**{field:"trusted\x00malicious"})
+   self.reject(**{field:" \t "})
+
  def test_oversized_integer_rejects_cleanly(self):
   self.reject(clock_period_ns=10**1000)
 
