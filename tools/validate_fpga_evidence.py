@@ -120,6 +120,17 @@ def read_report(path):
             remaining -= len(block)
         if remaining == 0:
             raise Rejected("report exceeds 64 KiB")
+        # Detect concurrent truncation/growth/rewrite during the bounded read.
+        # This does not authenticate the producer or defeat every concurrent
+        # same-size rewrite, but must not admit a visibly moving file.
+        after = os.fstat(fd)
+        if (after.st_dev != metadata.st_dev or
+                after.st_ino != metadata.st_ino or
+                after.st_size != metadata.st_size or
+                after.st_mtime_ns != metadata.st_mtime_ns or
+                after.st_ctime_ns != metadata.st_ctime_ns or
+                sum(map(len, chunks)) != metadata.st_size):
+            raise Rejected("report changed during bounded read")
     finally:
         os.close(fd)
     return json.loads(b"".join(chunks).decode("utf-8"),
