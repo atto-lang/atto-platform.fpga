@@ -1,0 +1,30 @@
+// TestSuite reference-model assertions only; not native fpga API execution.
+import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "ores.std/testing";
+import fnc expect_true, run_suite, require_success from "ores.std/testing";
+
+fnc carry8(int a, int b): bool { return a + b >= 256; }
+
+fnc rtl_carry_zero(): TestOutcome {
+  return expect_true(!carry8(0,0), "rtl_carry_zero scalar reference failed");
+}
+fnc rtl_carry_edge(): TestOutcome {
+  return expect_true(carry8(255,1), "rtl_carry_edge scalar reference failed");
+}
+fnc rtl_carry_255(): TestOutcome {
+  return expect_true(!carry8(127,128), "rtl_carry_255 scalar reference failed");
+}
+fnc rtl_carry_256(): TestOutcome {
+  return expect_true(carry8(128,128), "rtl_carry_256 scalar reference failed");
+}
+pub routine main(): void {
+  val TestSuite suite = new TestSuite("platform-fpga-extended", arr[
+    new TestCase("rtl_carry_zero", rtl_carry_zero, false, ""),
+    new TestCase("rtl_carry_edge", rtl_carry_edge, false, ""),
+    new TestCase("rtl_carry_255", rtl_carry_255, false, ""),
+    new TestCase("rtl_carry_256", rtl_carry_256, false, "")
+  ]);
+  val TestOptions options = new TestOptions("", false, true);
+  val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
+  require_success(rt borrow summary);
+  return;
+}
