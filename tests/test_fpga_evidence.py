@@ -1,6 +1,12 @@
 import copy
+import json
+import os
+import tempfile
 import unittest
-from tools.validate_fpga_evidence import validate, Rejected
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+from tools.validate_fpga_evidence import validate, read_report, Rejected
 
 BASE = dict(schema_version=1,stage="SYNTH_ONLY",device="iCE40-class target",
  rtl_sha256="a"*64,toolchain="Yosys + nextpnr (illustrative version)",
@@ -62,6 +68,46 @@ class EvidenceTest(unittest.TestCase):
 
  def test_oversized_integer_rejects_cleanly(self):
   self.reject(clock_period_ns=10**1000)
+
+ def test_bounded_file_reader_rejects_mutation_between_stat_calls(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/"proof.json"
+   path.write_text(json.dumps(BASE),encoding="utf-8")
+   original=os.fstat
+   calls=[0]
+   def mutate_stat(fd):
+    st=original(fd)
+    calls[0]+=1
+    if calls[0]!=2:
+     return st
+    return SimpleNamespace(st_dev=st.st_dev,st_ino=st.st_ino,
+      st_size=st.st_size,st_mtime_ns=st.st_mtime_ns+1,
+      st_ctime_ns=st.st_ctime_ns)
+   with patch("tools.validate_fpga_evidence.os.fstat",side_effect=mutate_stat):
+    with self.assertRaisesRegex(Rejected,"changed during bounded read"):
+     read_report(path)
+   self.assertEqual(calls[0],2)
+
+ def test_duplicate_json_evidence_members_rejected_before_shape_admission(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/"duplicate.json"
+   raw=json.dumps(BASE)
+   path.write_text(raw.replace('"stage": "SYNTH_ONLY"',
+        '"stage": "BOARD_VERIFIED", "stage": "SYNTH_ONLY"'),encoding="utf-8")
+   with self.assertRaisesRegex(Rejected,"duplicate JSON member"):
+    read_report(path)
+
+ def test_file_reader_refuses_invalid_utf8_and_nonstandard_numbers(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/"invalid.json"
+   raw=json.dumps(BASE).encode("utf-8").replace(b"iCE40",b"\\xffCE40")
+   path.write_bytes(raw)
+   with self.assertRaises(UnicodeError):
+    read_report(path)
+   path.write_text(json.dumps(BASE).replace('"seed": 0','"seed": NaN'),encoding="utf-8")
+   with self.assertRaisesRegex(Rejected,"nonstandard JSON constant"):
+    read_report(path)
+
 
 if __name__=="__main__":
  unittest.main()
