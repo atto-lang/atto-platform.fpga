@@ -100,7 +100,7 @@ class EvidenceTest(unittest.TestCase):
  def test_file_reader_refuses_invalid_utf8_and_nonstandard_numbers(self):
   with tempfile.TemporaryDirectory() as directory:
    path=Path(directory)/"invalid.json"
-   raw=json.dumps(BASE).encode("utf-8").replace(b"iCE40",b"\\xffCE40")
+   raw=json.dumps(BASE).encode("utf-8").replace(b"iCE40",bytes([0xff])+b"CE40")
    path.write_bytes(raw)
    with self.assertRaises(UnicodeError):
     read_report(path)
