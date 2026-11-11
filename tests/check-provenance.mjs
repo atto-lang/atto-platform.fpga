@@ -1,9 +1,14 @@
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
-const p=JSON.parse(readFileSync('generated/provenance.json','utf8'));
+import {parsePinnedProvenance} from '../tools/parse-pinned-provenance.mjs';
+const p=parsePinnedProvenance(readFileSync('generated/provenance.json','utf8'));
 const digest=s=>createHash('sha256').update(readFileSync(s)).digest('hex');
 assert.equal(p.schemaVersion,1);
+assert.equal(p.sourceRepo,'ores-truffle-oreslang/oreslang-source.hdl');
+assert.equal(p.sourcePath,'tests/fixtures/add8.ores');
+assert.equal(p.compilerFixturePath,'tests/fixtures/add8.generated.sv');
+assert.equal(p.provenance,'byte-exact copy of compiler-generated golden fixture; independently reverify upstream PR');
 assert.equal(p.sourceCommit,'2be4899ec3ad2e8dd38d6514d06e38d3d81a6b13');
 assert.equal(p.rtlGitBlobSha,'93f75db8bf1725a7fe0f1150f1c949f8919863ce');
 assert.equal(digest('generated/add8.ores'),p.sourceSha256);
