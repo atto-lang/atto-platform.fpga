@@ -19,5 +19,22 @@ export function parsePinnedProvenance(raw){
   const keys=Object.keys(parsed).sort();
   if(JSON.stringify(keys)!==JSON.stringify([...FIELDS].sort()))
     throw Error('provenance contains missing or unexpected fields');
+  // Immutable identity/claim values belong inside the reusable admission gate;
+  // a caller must not accidentally omit the checks and accept a substituted
+  // repository, source artifact or fictional board result.
+  const pinned={
+    schemaVersion:1,
+    sourceRepo:'ores-truffle-oreslang/oreslang-source.hdl',
+    sourcePath:'tests/fixtures/add8.ores',
+    sourceSha256:'26d446e1d903edca9691d37fc55c946033b590687468449103507c61b7026e80',
+    compilerFixturePath:'tests/fixtures/add8.generated.sv',
+    rtlSha256:'7888f715405fb1207ee4988d9b9cf9cd03ecc9eeca58b85782654d46104e01cd',
+    provenance:'byte-exact copy of compiler-generated golden fixture; independently reverify upstream PR',
+    hardwareVerified:false,
+    sourceCommit:'2be4899ec3ad2e8dd38d6514d06e38d3d81a6b13',
+    rtlGitBlobSha:'93f75db8bf1725a7fe0f1150f1c949f8919863ce'
+  };
+  for(const [field,expected] of Object.entries(pinned))
+    if(parsed[field]!==expected)throw Error('untrusted pinned provenance '+field);
   return parsed;
 }
