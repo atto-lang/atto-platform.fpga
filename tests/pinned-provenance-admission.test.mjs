@@ -23,6 +23,8 @@ test('extra fields, missing fields and changed whitespace are denied',()=>{
   const missing=JSON.parse(original);
   delete missing.sourceRepo;
   assert.throws(()=>parsePinnedProvenance(JSON.stringify(missing,null,2)+'\n'),/missing or unexpected/);
+  const spoof={...JSON.parse(original),sourceRepo:'attacker/hardware'};
+  assert.throws(()=>parsePinnedProvenance(JSON.stringify(spoof,null,2)+'\n'),/untrusted/);
   assert.throws(()=>parsePinnedProvenance(JSON.stringify(JSON.parse(original))),/canonical/);
 });
 test('invalid input and oversized provenance are denied',()=>{
