@@ -81,6 +81,9 @@ def validate(record):
               "P&R and synthesis reports must be distinct")
         if stage == "BOARD_VERIFIED":
             check(bool(record["board_log_sha256"]), "board verification requires actual board log")
+            check(record["board_log_sha256"] not in
+                  {record["synth_log_sha256"], record["pnr_log_sha256"]},
+                  "board and tool reports must be distinct")
         else:
             check(not record["board_log_sha256"], "board data requires BOARD_VERIFIED stage")
     return {"admitted_shape": True, "stage": stage, "note": "claims still require independent artifact verification"}
