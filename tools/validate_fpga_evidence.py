@@ -146,9 +146,18 @@ def canonical_shape_sha256(record):
     Numeric representation and individual field values are intentionally
     significant. It does not attest to RTL, P&R, silicon or board execution.
     """
-    validate(record)
-    canonical = json.dumps(record, sort_keys=True, separators=(",", ":"),
-                           ensure_ascii=True, allow_nan=False).encode("ascii")
+    # Hash *only* the serialized snapshot that was actually validated. A
+    # mutable dict subclass or concurrent caller may alter record after an
+    # initial validate(record); validation-before-serialization can then hash
+    # unvalidated content. CLI reports are independent parsed JSON objects.
+    try:
+        canonical = json.dumps(record, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=True, allow_nan=False).encode("ascii")
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise Rejected("non-JSON evidence shape") from exc
+    frozen = json.loads(canonical, object_pairs_hook=_unique_json_members,
+                        parse_constant=_reject_non_json_constant)
+    validate(frozen)
     return hashlib.sha256(canonical).hexdigest()
 
 
