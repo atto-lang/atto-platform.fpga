@@ -43,3 +43,8 @@ must never be described as an FPGA implementation.
 Next: choose a named supported FPGA/part/package, legal constraints and
 timing budget; implement nextpnr/P&R for that family; attest bitstream hash
 and independently exercise real board I/O, with golden-vector comparison.
+
+
+## Two-stage RTL composition host regression
+
+A Rust 2021 runner (`tools/add8_pipeline_gate.rs`) drives Icarus to simulate **two real `ores_add8` modules in sequence** for all 65,536 combinations of the first two input bytes, with a deterministic third byte. It checks both stages against independently computed 8-bit modular arithmetic and fails unless the simulator exits successfully and emits an exact marker. The Rust unit test checks the host oracle. CI installs Icarus and executes both tests. This is simulation of the pinned reference RTL, **not** fresh compiler generation, ASIC timing/signoff, FPGA board validation, or silicon measurement.

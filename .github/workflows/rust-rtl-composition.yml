@@ -1,0 +1,19 @@
+name: Rust RTL composition gate
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  rust-rtl-composition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install hardware simulator
+        run: sudo apt-get update -qq && sudo apt-get install -y iverilog
+      - name: Compile Rust runner and execute oracle tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2021 --test tools/add8_pipeline_gate.rs -o "$RUNNER_TEMP/add8_pipeline_unit"
+          "$RUNNER_TEMP/add8_pipeline_unit" --nocapture
+          rustc --edition=2021 tools/add8_pipeline_gate.rs -o "$RUNNER_TEMP/add8_pipeline_gate"
+          "$RUNNER_TEMP/add8_pipeline_gate" generated/add8.generated.sv tests/add8_pipeline_tb.sv
