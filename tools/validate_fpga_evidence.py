@@ -75,6 +75,10 @@ def validate(record):
     else:
         check(finite_positive(record["fmax_hz"]), "measured P&R Fmax required")
         check(bool(record["pnr_log_sha256"]), "P&R needs log hash")
+        # Distinct synthesis and routing stages must not reuse the same log
+        # digest as if one report established two independent tool steps.
+        check(record["pnr_log_sha256"] != record["synth_log_sha256"],
+              "P&R and synthesis reports must be distinct")
         if stage == "BOARD_VERIFIED":
             check(bool(record["board_log_sha256"]), "board verification requires actual board log")
         else:
