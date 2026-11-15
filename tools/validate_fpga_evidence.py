@@ -6,6 +6,7 @@ Valid shape is not independently verified proof of any reported tool run.
 import json
 import os
 import stat
+import unicodedata
 import math
 import re
 import sys
@@ -36,6 +37,13 @@ def finite_positive(value):
     return type(value) in (float, int) and 0 < value <= sys.float_info.max and math.isfinite(value)
 
 
+def safe_label(value):
+    # Reject decomposed aliases; isprintable already rejects format controls.
+    return (type(value) is str and 0 < len(value) <= 256 and
+            bool(value.strip()) and value.isprintable() and
+            unicodedata.normalize("NFC", value) == value)
+
+
 def validate(record):
     check(isinstance(record, dict) and set(record) == FIELDS,
           "unexpected/missing FPGA evidence fields")
@@ -43,15 +51,12 @@ def validate(record):
           "unknown schema")
     stage = record["stage"]
     check(type(stage) is str and stage in {"SYNTH_ONLY", "PLACED_ROUTED", "BOARD_VERIFIED"}, "unknown stage")
-    check(type(record["device"]) is str and
-          0 < len(record["device"]) <= 256 and record["device"].strip() and
-          record["device"].isprintable(),
+    check(safe_label(record["device"]),
           "bounded printable target device required")
     check(type(record["rtl_sha256"]) is str and HEX.fullmatch(record["rtl_sha256"]),
           "hash exact RTL input")
     toolchain = record["toolchain"]
-    check(type(toolchain) is str and 0 < len(toolchain) <= 256 and
-          toolchain.strip() and toolchain.isprintable(),
+    check(safe_label(toolchain),
           "bounded printable synthesis and placement toolchain required")
     check(finite_positive(record["clock_period_ns"]), "positive clock constraint required")
     check(type(record["seed"]) is int and 0 <= record["seed"] <= 2**32-1,
@@ -108,6 +113,8 @@ def read_report(path):
         metadata = os.fstat(fd)
         if not stat.S_ISREG(metadata.st_mode):
             raise Rejected("report must be a regular file")
+        if metadata.st_nlink != 1:
+            raise Rejected("report must be single-linked")
         if not 0 <= metadata.st_size <= MAX_REPORT_BYTES:
             raise Rejected("report exceeds 64 KiB")
         chunks = []
@@ -127,6 +134,8 @@ def read_report(path):
         if (after.st_dev != metadata.st_dev or
                 after.st_ino != metadata.st_ino or
                 after.st_size != metadata.st_size or
+                after.st_nlink != metadata.st_nlink or
+                after.st_mode != metadata.st_mode or
                 after.st_mtime_ns != metadata.st_mtime_ns or
                 after.st_ctime_ns != metadata.st_ctime_ns or
                 sum(map(len, chunks)) != metadata.st_size):
