@@ -4,6 +4,7 @@
 Valid shape is not independently verified proof of any reported tool run.
 """
 import json
+import hashlib
 import os
 import stat
 import math
@@ -138,13 +139,31 @@ def read_report(path):
                       parse_constant=_reject_non_json_constant)
 
 
+def canonical_shape_sha256(record):
+    """Deterministic ID for a *validated report shape*, NOT authenticated proof.
+
+    Dict member ordering and JSON whitespace cannot change this identity.
+    Numeric representation and individual field values are intentionally
+    significant. It does not attest to RTL, P&R, silicon or board execution.
+    """
+    validate(record)
+    canonical = json.dumps(record, sort_keys=True, separators=(",", ":"),
+                           ensure_ascii=True, allow_nan=False).encode("ascii")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def main(argv):
-    if len(argv) != 2:
-        print("usage: validate_fpga_evidence.py evidence.json", file=sys.stderr)
+    with_shape_id = len(argv) == 3 and argv[1] == "--with-shape-id"
+    if len(argv) != 2 and not with_shape_id:
+        print("usage: validate_fpga_evidence.py [--with-shape-id] evidence.json", file=sys.stderr)
         return 64
     try:
-        path = Path(argv[1])
-        print(json.dumps(validate(read_report(path)), sort_keys=True))
+        path = Path(argv[2] if with_shape_id else argv[1])
+        record = read_report(path)
+        result = validate(record)
+        if with_shape_id:
+            result["shape_sha256"] = canonical_shape_sha256(record)
+        print(json.dumps(result, sort_keys=True))
         return 0
     except (OSError, ValueError, UnicodeError, RecursionError) as exc:
         print(f"REJECTED: {exc}", file=sys.stderr)
