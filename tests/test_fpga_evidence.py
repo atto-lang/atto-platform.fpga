@@ -108,6 +108,26 @@ class EvidenceTest(unittest.TestCase):
    with self.assertRaisesRegex(Rejected,"nonstandard JSON constant"):
     read_report(path)
 
+ def test_rejects_noncanonical_provenance_label_aliases(self):
+  for field in ("device", "toolchain"):
+   self.reject(**{field:"Cafe\u0301-ref"})  # decomposed accent: not NFC
+   self.reject(**{field:"safe\u202eattack"})  # invisible bidi override
+   self.assertTrue(validate({**BASE, field:"Café-ref"})["admitted_shape"])
+
+ def test_hardlink_aliases_cannot_be_admitted_as_immutable_evidence(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/"evidence.json"
+   alias=Path(directory)/"alias.json"
+   path.write_text(json.dumps(BASE),encoding="utf-8")
+   self.assertEqual(read_report(path)["stage"],"SYNTH_ONLY")
+   os.link(path,alias)
+   with self.assertRaisesRegex(Rejected,"single-linked"):
+    read_report(path)
+   with self.assertRaisesRegex(Rejected,"single-linked"):
+    read_report(alias)
+   alias.unlink()
+   self.assertEqual(read_report(path)["stage"],"SYNTH_ONLY")
+
 
 if __name__=="__main__":
  unittest.main()
