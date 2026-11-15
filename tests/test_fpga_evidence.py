@@ -81,8 +81,8 @@ class EvidenceTest(unittest.TestCase):
     if calls[0]!=2:
      return st
     return SimpleNamespace(st_dev=st.st_dev,st_ino=st.st_ino,
-      st_size=st.st_size,st_mtime_ns=st.st_mtime_ns+1,
-      st_ctime_ns=st.st_ctime_ns)
+      st_size=st.st_size,st_nlink=st.st_nlink,st_mode=st.st_mode,
+      st_mtime_ns=st.st_mtime_ns+1,st_ctime_ns=st.st_ctime_ns)
    with patch("tools.validate_fpga_evidence.os.fstat",side_effect=mutate_stat):
     with self.assertRaisesRegex(Rejected,"changed during bounded read"):
      read_report(path)
