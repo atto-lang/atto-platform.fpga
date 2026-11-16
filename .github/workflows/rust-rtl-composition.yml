@@ -17,3 +17,5 @@ jobs:
           "$RUNNER_TEMP/add8_pipeline_unit" --nocapture
           rustc --edition=2021 tools/add8_pipeline_gate.rs -o "$RUNNER_TEMP/add8_pipeline_gate"
           "$RUNNER_TEMP/add8_pipeline_gate" generated/add8.generated.sv tests/add8_pipeline_tb.sv
+          rustc --edition=2021 --test tests/rust_rtl_gate_negative.rs -o "$RUNNER_TEMP/add8_negative"
+          RTL_GATE_BIN="$RUNNER_TEMP/add8_pipeline_gate" RTL_GATE_RTL=generated/add8.generated.sv RTL_GATE_TB=tests/add8_pipeline_tb.sv "$RUNNER_TEMP/add8_negative" --nocapture
