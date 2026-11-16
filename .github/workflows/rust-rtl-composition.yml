@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Install hardware simulator
         run: sudo apt-get update -qq && sudo apt-get install -y iverilog
       - name: Compile Rust runner and execute oracle tests
