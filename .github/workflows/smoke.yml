@@ -1,0 +1,35 @@
+name: FPGA platform generic RTL smoke
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generic-rtl-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source head
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse --verify HEAD)" = "$EXPECTED_SHA"
+          python3 scripts/verify_raw_checkout.py
+          python3 -m unittest discover -s tests -p 'test_verify_raw_checkout.py' -q
+      - name: Install required synthesis/simulator tools
+        run: sudo apt-get update && sudo apt-get install -y iverilog yosys
+      - name: Verify fixture with simulator and Yosys
+        run: bash scripts/smoke.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: fpga-generic-smoke-only
+          path: build/
