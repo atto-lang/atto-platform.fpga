@@ -1,0 +1,32 @@
+// Pure Oreslang scalar reference models; these do not call platform native APIs.
+import class TestCase, TestSuite, TestOptions, TestOutcome, RunSummary from "ores.std/testing";
+import fnc expect_true, run_suite, require_success from "ores.std/testing";
+
+fnc add8_reference(int left, int right): int {
+  let int sum = left + right;
+  if sum >= 256; do
+    return sum - 256;
+  fi
+  return sum;
+}
+
+fnc fabric_add8_simple(): TestOutcome {
+  return expect_true(add8_reference(20, 22) == 42, "fabric_add8_simple reference assertion failed");
+}
+fnc fabric_add8_wrap(): TestOutcome {
+  return expect_true(add8_reference(128, 128) == 0 && add8_reference(255, 2) == 1, "fabric_add8_wrap reference assertion failed");
+}
+fnc fabric_add8_commutative(): TestOutcome {
+  return expect_true(add8_reference(57, 201) == add8_reference(201, 57), "fabric_add8_commutative reference assertion failed");
+}
+pub routine main(): void {
+  val TestSuite suite = new TestSuite("fpga-scalar-reference", arr[
+    new TestCase("fabric_add8_simple", fabric_add8_simple, false, ""),
+    new TestCase("fabric_add8_wrap", fabric_add8_wrap, false, ""),
+    new TestCase("fabric_add8_commutative", fabric_add8_commutative, false, "")
+  ]);
+  val TestOptions options = new TestOptions("", false, true);
+  val RunSummary summary = run_suite(rt borrow suite, rt borrow options);
+  require_success(rt borrow summary);
+  return;
+}
