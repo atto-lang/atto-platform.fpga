@@ -81,8 +81,8 @@ class EvidenceTest(unittest.TestCase):
     if calls[0]!=2:
      return st
     return SimpleNamespace(st_dev=st.st_dev,st_ino=st.st_ino,
-      st_size=st.st_size,st_mtime_ns=st.st_mtime_ns+1,
-      st_ctime_ns=st.st_ctime_ns)
+      st_size=st.st_size,st_nlink=st.st_nlink,st_mode=st.st_mode,
+      st_mtime_ns=st.st_mtime_ns+1,st_ctime_ns=st.st_ctime_ns)
    with patch("tools.validate_fpga_evidence.os.fstat",side_effect=mutate_stat):
     with self.assertRaisesRegex(Rejected,"changed during bounded read"):
      read_report(path)
@@ -107,6 +107,26 @@ class EvidenceTest(unittest.TestCase):
    path.write_text(json.dumps(BASE).replace('"seed": 0','"seed": NaN'),encoding="utf-8")
    with self.assertRaisesRegex(Rejected,"nonstandard JSON constant"):
     read_report(path)
+
+ def test_rejects_noncanonical_provenance_label_aliases(self):
+  for field in ("device", "toolchain"):
+   self.reject(**{field:"Cafe\u0301-ref"})  # decomposed accent: not NFC
+   self.reject(**{field:"safe\u202eattack"})  # invisible bidi override
+   self.assertTrue(validate({**BASE, field:"Café-ref"})["admitted_shape"])
+
+ def test_hardlink_aliases_cannot_be_admitted_as_immutable_evidence(self):
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/"evidence.json"
+   alias=Path(directory)/"alias.json"
+   path.write_text(json.dumps(BASE),encoding="utf-8")
+   self.assertEqual(read_report(path)["stage"],"SYNTH_ONLY")
+   os.link(path,alias)
+   with self.assertRaisesRegex(Rejected,"single-linked"):
+    read_report(path)
+   with self.assertRaisesRegex(Rejected,"single-linked"):
+    read_report(alias)
+   alias.unlink()
+   self.assertEqual(read_report(path)["stage"],"SYNTH_ONLY")
 
 
 if __name__=="__main__":
