@@ -42,6 +42,14 @@ AttoLang is the canonical project name; new source, examples and documentation u
 
 **Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
 
+## Migration history and maintainer safeguards
+
+The archived predecessor is [ores-truffle-oreslang/oreslang-platform.fpga](https://github.com/ores-truffle-oreslang/oreslang-platform.fpga). This repository is the canonical AttoLang home; its migration must not be described as an ID-preserving GitHub transfer without verified evidence. Historical `.ores` fixtures and legacy CLI/package identifiers are compatibility inputs, not the preferred spelling for new AttoLang sources. Migrate pinned fixture inputs together with their compiler provenance and executable regression evidence.
+
+[atto-lang](https://github.com/atto-lang) owns language, compiler, runtime, target and parity work; [atto-co](https://github.com/atto-co) is separately scoped to production cloud infrastructure, tenant management, billing, identity and deployment. Any future transfer or carve-out requires owner authorization and security review. Verify source and target repository identity, exact Git tree/history, permissions, branch rules, open work, tags/releases, runners, secrets/environments, packages, webhooks/Apps, Pages, submodules and consumers. Preserve private-source boundaries; a CI carrier is not a transfer mechanism.
+
+Historical planning: [migration issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26) and [runbook draft #25](https://github.com/ores-truffle-oreslang/.github/pull/25). Verify material tests on the exact current candidate; empty job steps are NOT_EXECUTED, and host-only checks are not board or guest certification.
+
 ## Two-stage RTL composition host regression
 
 The Rust 2021 runner (`tools/add8_pipeline_gate.rs`) drives Icarus to simulate two instances of the pinned reference `ores_add8` module for all 65,536 first-stage byte pairs, with a deterministic third byte. The bench checks intermediate and final modular arithmetic. The Rust oracle and negative tests exercise the golden RTL, a deliberately poisoned adder, and missing inputs. This is pinned reference RTL simulation, not fresh AttoLang compiler generation, timing signoff, FPGA board validation, or silicon measurement.
