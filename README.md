@@ -1,45 +1,43 @@
-# Oreslang FPGA platform — verified gates, not board-ready
+> **AI agent instructions (organization-wide):** Before working on code, issues, or pull requests, read and follow the [organization `AGENTS.md`](https://github.com/atto-lang/.github/blob/main/AGENTS.md), including its **merge-first stealth-development policy**. Honor any repository-local `AGENTS.md`, explicit holds, and GitHub-enforced rules.
 
-This platform consumes **the byte-exact golden RTL fixture** from [oreslang-source.hdl](https://github.com/ores-truffle-oreslang/oreslang-source.hdl/pull/1) and verifies both source and emitted RTL SHA-256 values. Its own `examples/add8.sv` is an independently authored toolchain smoke and is **not** compiler evidence.
+# atto-platform.fpga
 
-## Automated prototype gates
-1. `node tests/check-provenance.mjs` verifies that `generated/add8.ores` and `generated/add8.generated.sv` match the pinned hashes.
-2. Icarus executes all 65,536 input combinations against the **pinned compiler-generated HDL artifact**.
-3. Yosys maps the same artifact to iCE40 primitive cells.
-4. nextpnr places/routes a virtual iCE40 HX8K CT256 design with unconstrained IO; `icepack` emits a **virtual/unprogrammed** bitstream. Successful tools do **not** establish board-safe pin mappings, electrical integrity, timing signoff, or real board execution.
+Experimental FPGA compilation and acceleration infrastructure for AttoLang.
 
-End-to-end provenance additionally requires independently executed upstream compiler evidence matching these digests. This repository does not run the compiler; pinned artifact hashes alone do not establish that the current compiler emits this RTL.
+## Naming migration and language authority
 
-## Commands
-```sh
-node tests/check-provenance.mjs
-bash tests/wrapper-smoke.sh
-mkdir -p outputs
-bash scripts/synth-ice40.sh generated/add8.generated.sv ores_add8 outputs/add8.json
-nextpnr-ice40 --hx8k --package ct256 --json outputs/add8.json --asc outputs/add8.asc --pcf-allow-unconstrained --freq 12
-icepack outputs/add8.asc outputs/add8.bin
-```
+This repository is maintained at [atto-lang/atto-platform.fpga](https://github.com/atto-lang/atto-platform.fpga); use `https://github.com/atto-lang/atto-platform.fpga.git` for Git remotes and canonical `.atto` source examples. The normative language contract is [atto-spec](https://github.com/atto-lang/atto-spec), with executable guest evidence tracked by [atto-platform-conformance](https://github.com/atto-lang/atto-platform-conformance). Follow current ownership, borrowing, effects, actor, and syntax rules there; do not infer implemented features from a README or unexecuted CI.
 
-**Next hardware finish line:** pick an actual board/package, commit its manufacturer-verified PCF constraints and a clock/frequency requirement, run timing; flash through a supported programmer and capture pin-level measurements/serial tests. Without those, status is only virtual implementation.
+## Scope
 
-## Existing generic smoke gate
+FPGA-target compilation experiments, host interfaces, and hardware validation.
 
+## Portability contract
 
-This repository consumes RTL under the proposed
-[hardware contract](https://github.com/ores-truffle-oreslang/oreslang-common-source/pull/65).
-It **does not implement** the Oreslang compiler.
+The AttoLang language contract must remain separate from target-specific capabilities. Document supported toolchains, devices, platform APIs, memory limits, runtime constraints, and unsupported features explicitly.
 
-Implemented: self-contained representative \`add8\` RTL fixture, exhaustive
-65,536-vector Icarus simulation, generic Yosys synthesis and CI evidence.
-\`bash scripts/smoke.sh\` requires actual tools (no fake success).
-The fixture does not automatically attest the exact HDL compiler head; the
-compiler's own gate must execute separately and match the fixture by digest.
+## Verification
 
-No board, pin file, clock constraint, nextpnr route, timing closure, bitstream,
-or device measurements are included. \`scripts/board_gate.sh\` intentionally
-fails without a reviewed board-specific recipe. A generic synthesis PASS
-must never be described as an FPGA implementation.
+Where feasible, use real devices or representative emulators in addition to host-side tests. Record toolchain versions, target profiles, exact commit SHAs, and execution evidence. A successful build alone is not proof of runtime semantics.
 
-Next: choose a named supported FPGA/part/package, legal constraints and
-timing budget; implement nextpnr/P&R for that family; attest bitstream hash
-and independently exercise real board I/O, with golden-vector comparison.
+## Development status
+
+This is a statement of intended project responsibilities. Consult source files and CI for verified implementation or release status; do not assume all targets are supported.
+
+## Related projects
+
+- [AttoLang](https://github.com/atto-lang)
+- [Target profiles](https://github.com/atto-lang/atto-target-profiles)
+- [Platform conformance](https://github.com/atto-lang/atto-platform-conformance)
+
+## Repository ownership and contribution routing
+
+**Belongs here:** FPGA-specific synthesis flow, board profiles, bitstream/host bridging and hardware-in-the-loop validation.
+
+**Belongs elsewhere:** AttoLang HDL syntax/lowering in atto-source.hdl; ASIC-oriented gates in atto-platform.asic; backend-neutral targets in atto-target-profiles.
+
+**Security and portability boundary:** Explicitly bound synthesizable feature set, clock/memory constraints and unsupported concurrency; real board/simulator receipts are distinct from host-only tests.
+
+AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
+
+**Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
