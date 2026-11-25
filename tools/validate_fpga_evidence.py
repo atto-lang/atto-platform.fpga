@@ -76,8 +76,14 @@ def validate(record):
     else:
         check(finite_positive(record["fmax_hz"]), "measured P&R Fmax required")
         check(bool(record["pnr_log_sha256"]), "P&R needs log hash")
+        # Separate stages must not reuse a single report digest.
+        check(record["pnr_log_sha256"] != record["synth_log_sha256"],
+              "P&R and synthesis reports must be distinct")
         if stage == "BOARD_VERIFIED":
             check(bool(record["board_log_sha256"]), "board verification requires actual board log")
+            check(record["board_log_sha256"] not in
+                  {record["synth_log_sha256"], record["pnr_log_sha256"]},
+                  "board and tool reports must be distinct")
         else:
             check(not record["board_log_sha256"], "board data requires BOARD_VERIFIED stage")
     return {"admitted_shape": True, "stage": stage, "note": "claims still require independent artifact verification"}
