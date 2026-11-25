@@ -4,8 +4,10 @@
 Valid shape is not independently verified proof of any reported tool run.
 """
 import json
+import hashlib
 import os
 import stat
+import unicodedata
 import math
 import re
 import sys
@@ -36,6 +38,13 @@ def finite_positive(value):
     return type(value) in (float, int) and 0 < value <= sys.float_info.max and math.isfinite(value)
 
 
+def safe_label(value):
+    # Reject decomposed aliases; isprintable already rejects format controls.
+    return (type(value) is str and 0 < len(value) <= 256 and
+            bool(value.strip()) and value.isprintable() and
+            unicodedata.normalize("NFC", value) == value)
+
+
 def validate(record):
     check(isinstance(record, dict) and set(record) == FIELDS,
           "unexpected/missing FPGA evidence fields")
@@ -43,15 +52,12 @@ def validate(record):
           "unknown schema")
     stage = record["stage"]
     check(type(stage) is str and stage in {"SYNTH_ONLY", "PLACED_ROUTED", "BOARD_VERIFIED"}, "unknown stage")
-    check(type(record["device"]) is str and
-          0 < len(record["device"]) <= 256 and record["device"].strip() and
-          record["device"].isprintable(),
+    check(safe_label(record["device"]),
           "bounded printable target device required")
     check(type(record["rtl_sha256"]) is str and HEX.fullmatch(record["rtl_sha256"]),
           "hash exact RTL input")
     toolchain = record["toolchain"]
-    check(type(toolchain) is str and 0 < len(toolchain) <= 256 and
-          toolchain.strip() and toolchain.isprintable(),
+    check(safe_label(toolchain),
           "bounded printable synthesis and placement toolchain required")
     check(finite_positive(record["clock_period_ns"]), "positive clock constraint required")
     check(type(record["seed"]) is int and 0 <= record["seed"] <= 2**32-1,
@@ -108,6 +114,8 @@ def read_report(path):
         metadata = os.fstat(fd)
         if not stat.S_ISREG(metadata.st_mode):
             raise Rejected("report must be a regular file")
+        if metadata.st_nlink != 1:
+            raise Rejected("report must be single-linked")
         if not 0 <= metadata.st_size <= MAX_REPORT_BYTES:
             raise Rejected("report exceeds 64 KiB")
         chunks = []
@@ -127,6 +135,8 @@ def read_report(path):
         if (after.st_dev != metadata.st_dev or
                 after.st_ino != metadata.st_ino or
                 after.st_size != metadata.st_size or
+                after.st_nlink != metadata.st_nlink or
+                after.st_mode != metadata.st_mode or
                 after.st_mtime_ns != metadata.st_mtime_ns or
                 after.st_ctime_ns != metadata.st_ctime_ns or
                 sum(map(len, chunks)) != metadata.st_size):
@@ -138,13 +148,40 @@ def read_report(path):
                       parse_constant=_reject_non_json_constant)
 
 
+def canonical_shape_sha256(record):
+    """Deterministic ID for a *validated report shape*, NOT authenticated proof.
+
+    Dict member ordering and JSON whitespace cannot change this identity.
+    Numeric representation and individual field values are intentionally
+    significant. It does not attest to RTL, P&R, silicon or board execution.
+    """
+    # Hash *only* the serialized snapshot that was actually validated. A
+    # mutable dict subclass or concurrent caller may alter record after an
+    # initial validate(record); validation-before-serialization can then hash
+    # unvalidated content. CLI reports are independent parsed JSON objects.
+    try:
+        canonical = json.dumps(record, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=True, allow_nan=False).encode("ascii")
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise Rejected("non-JSON evidence shape") from exc
+    frozen = json.loads(canonical, object_pairs_hook=_unique_json_members,
+                        parse_constant=_reject_non_json_constant)
+    validate(frozen)
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def main(argv):
-    if len(argv) != 2:
-        print("usage: validate_fpga_evidence.py evidence.json", file=sys.stderr)
+    with_shape_id = len(argv) == 3 and argv[1] == "--with-shape-id"
+    if len(argv) != 2 and not with_shape_id:
+        print("usage: validate_fpga_evidence.py [--with-shape-id] evidence.json", file=sys.stderr)
         return 64
     try:
-        path = Path(argv[1])
-        print(json.dumps(validate(read_report(path)), sort_keys=True))
+        path = Path(argv[2] if with_shape_id else argv[1])
+        record = read_report(path)
+        result = validate(record)
+        if with_shape_id:
+            result["shape_sha256"] = canonical_shape_sha256(record)
+        print(json.dumps(result, sort_keys=True))
         return 0
     except (OSError, ValueError, UnicodeError, RecursionError) as exc:
         print(f"REJECTED: {exc}", file=sys.stderr)
