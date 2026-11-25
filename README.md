@@ -41,3 +41,11 @@ This is a statement of intended project responsibilities. Consult source files a
 AttoLang is the canonical project name; new source, examples and documentation use `.atto` and the `atto-lang` repository organization. This README defines scope, not feature readiness.
 
 **Acceptance:** name exact source SHA/tree, runtime/toolchain, positive and negative checks and execution receipt before claiming support. Host-only tests and empty CI steps do not prove guest execution.
+
+## Migration history and maintainer safeguards
+
+The archived predecessor is [ores-truffle-oreslang/oreslang-platform.fpga](https://github.com/ores-truffle-oreslang/oreslang-platform.fpga). This repository is the canonical AttoLang home; its migration must not be described as an ID-preserving GitHub transfer without verified evidence. Historical `.ores` fixtures and legacy CLI/package identifiers are compatibility inputs, not the preferred spelling for new AttoLang sources. Migrate pinned fixture inputs together with their compiler provenance and executable regression evidence.
+
+[atto-lang](https://github.com/atto-lang) owns language, compiler, runtime, target and parity work; [atto-co](https://github.com/atto-co) is separately scoped to production cloud infrastructure, tenant management, billing, identity and deployment. Any future transfer or carve-out requires owner authorization and security review. Verify source and target repository identity, exact Git tree/history, permissions, branch rules, open work, tags/releases, runners, secrets/environments, packages, webhooks/Apps, Pages, submodules and consumers. Preserve private-source boundaries; a CI carrier is not a transfer mechanism.
+
+Historical planning: [migration issue #26](https://github.com/ores-truffle-oreslang/.github/issues/26) and [runbook draft #25](https://github.com/ores-truffle-oreslang/.github/pull/25). Verify material tests on the exact current candidate; empty job steps are NOT_EXECUTED, and host-only checks are not board or guest certification.
